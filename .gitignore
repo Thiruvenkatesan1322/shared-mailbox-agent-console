@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments and local configuration
+.venv/
+venv/
+workai/
+.env
+
+# Django runtime files
+db.sqlite3
+staticfiles/
+media/
+
+# Test and tool caches
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,286 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Shared Mailbox Agent end-to-end operations simulation">
+    <title>Mailbox Agent Operations Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'operations/css/console.css' %}">
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+    <script src="{% static 'operations/js/console.js' %}" defer></script>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="nav-rail" aria-label="Primary navigation">
+            <a class="product-mark" href="/" aria-label="RelayOps home">
+                <i data-lucide="waypoints" aria-hidden="true"></i>
+            </a>
+            <nav class="rail-links">
+                <button class="rail-button is-active" type="button" aria-label="Agent runs" title="Agent runs">
+                    <i data-lucide="activity" aria-hidden="true"></i>
+                </button>
+                <button class="rail-button" type="button" aria-label="Incident queue" title="Incident queue">
+                    <i data-lucide="inbox" aria-hidden="true"></i>
+                    <span class="rail-count">2</span>
+                </button>
+                <button class="rail-button" type="button" aria-label="Policies" title="Policies">
+                    <i data-lucide="shield-check" aria-hidden="true"></i>
+                </button>
+                <button class="rail-button" type="button" aria-label="Connectors" title="Connectors">
+                    <i data-lucide="unplug" aria-hidden="true"></i>
+                </button>
+                <button class="rail-button" type="button" aria-label="Audit logs" title="Audit logs">
+                    <i data-lucide="scroll-text" aria-hidden="true"></i>
+                </button>
+            </nav>
+            <div class="rail-footer">
+                <button class="rail-button" type="button" aria-label="Settings" title="Settings">
+                    <i data-lucide="settings-2" aria-hidden="true"></i>
+                </button>
+                <div class="operator-avatar" title="Messaging Operations">MO</div>
+            </div>
+        </aside>
+
+        <div class="app-main">
+            <header class="topbar">
+                <div class="brand-block">
+                    <div class="brand-name">RelayOps</div>
+                    <span class="brand-divider" aria-hidden="true"></span>
+                    <div class="brand-area">Shared Mailbox Control Plane</div>
+                </div>
+                <div class="topbar-status" aria-label="Platform status">
+                    <span class="environment-chip"><span class="live-dot"></span> Azure Production</span>
+                    <span class="health-item"><i data-lucide="radio" aria-hidden="true"></i> Event stream <b>live</b></span>
+                    <span class="health-item"><i data-lucide="server-cog" aria-hidden="true"></i> MCP <b>4/4</b></span>
+                    <span class="demo-chip">SIMULATED DATA</span>
+                </div>
+            </header>
+
+            <main class="workspace">
+                <section class="workspace-header" aria-labelledby="page-title">
+                    <div>
+                        <p class="eyebrow">AUTONOMOUS OPERATIONS / RUN DETAIL</p>
+                        <div class="title-line">
+                            <h1 id="page-title">Agent Operations Console</h1>
+                            <span class="run-state state-ready" id="run-state"><span></span> Ready</span>
+                        </div>
+                        <p class="workflow-description" id="workflow-description">{{ default_workflow.description }}</p>
+                    </div>
+                    <div class="header-actions">
+                        <div class="scenario-switch" role="group" aria-label="Workflow scenario">
+                            {% for key, workflow in workflows.items %}
+                            <button type="button" class="scenario-button{% if key == 'delegation' %} is-active{% endif %}" data-workflow="{{ key }}">
+                                {{ workflow.short_label }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <div class="run-controls">
+                            <button class="icon-button" id="reset-button" type="button" aria-label="Reset simulation" title="Reset simulation">
+                                <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+                            </button>
+                            <button class="primary-button" id="run-button" type="button">
+                                <i data-lucide="play" aria-hidden="true"></i>
+                                <span>Run simulation</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="signal-banner" id="signal-banner" aria-live="polite">
+                    <div class="signal-icon"><i data-lucide="webhook" aria-hidden="true"></i></div>
+                    <div>
+                        <span class="signal-label">INCOMING EVENT</span>
+                        <strong><span id="banner-number">{{ default_workflow.incident.number }}</span> received from ServiceNow</strong>
+                    </div>
+                    <div class="signal-route">
+                        <span>Topic</span>
+                        <code>mailbox-operations-prod</code>
+                    </div>
+                    <div class="signal-time" id="banner-time">{{ default_workflow.incident.created }}</div>
+                </section>
+
+                <section class="flow-section" aria-label="Workflow progress">
+                    <div class="section-label">
+                        <span>ORCHESTRATION PATH</span>
+                        <span id="flow-progress">0 / {{ default_workflow.steps|length }} operations</span>
+                    </div>
+                    <div class="stage-map" id="stage-map"></div>
+                </section>
+
+                <section class="topology-section" aria-label="System topology">
+                    <div class="topology-node" data-system="ServiceNow">
+                        <i data-lucide="ticket-check" aria-hidden="true"></i>
+                        <span><b>ServiceNow</b><small>Trigger + closure</small></span>
+                    </div>
+                    <i class="topology-arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+                    <div class="topology-node" data-system="Integration Layer">
+                        <i data-lucide="workflow" aria-hidden="true"></i>
+                        <span><b>Integration</b><small>APIM + Service Bus</small></span>
+                    </div>
+                    <i class="topology-arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+                    <div class="topology-node" data-system="Agent Runtime">
+                        <i data-lucide="cpu" aria-hidden="true"></i>
+                        <span><b>Agent Runtime</b><small>Plan + checkpoint</small></span>
+                    </div>
+                    <i class="topology-arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+                    <div class="topology-node" data-system="Azure OpenAI">
+                        <i data-lucide="brain-circuit" aria-hidden="true"></i>
+                        <span><b>Azure OpenAI</b><small>Classify + reason</small></span>
+                    </div>
+                    <i class="topology-arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+                    <div class="topology-node" data-system="MCP Gateway">
+                        <i data-lucide="network" aria-hidden="true"></i>
+                        <span><b>MCP Gateway</b><small>Policy + tools</small></span>
+                    </div>
+                    <i class="topology-arrow" data-lucide="arrow-right" aria-hidden="true"></i>
+                    <div class="topology-node" data-system="Exchange Online">
+                        <i data-lucide="mail-check" aria-hidden="true"></i>
+                        <span><b>M365 / Exchange</b><small>Execute + verify</small></span>
+                    </div>
+                </section>
+
+                <section class="console-grid">
+                    <aside class="panel context-panel" aria-labelledby="context-heading">
+                        <div class="panel-heading">
+                            <div>
+                                <span class="panel-kicker">CASE CONTEXT</span>
+                                <h2 id="context-heading">Incident payload</h2>
+                            </div>
+                            <span class="priority-badge" id="priority-badge">P3</span>
+                        </div>
+                        <div class="ticket-identity">
+                            <span id="incident-type">{{ default_workflow.incident.type }}</span>
+                            <strong id="incident-number">{{ default_workflow.incident.number }}</strong>
+                            <span class="ticket-state" id="ticket-state">New</span>
+                        </div>
+                        <p class="ticket-summary" id="ticket-summary">{{ default_workflow.incident.summary }}</p>
+
+                        <dl class="context-list">
+                            <div><dt>Shared mailbox</dt><dd id="mailbox-value">{{ default_workflow.incident.mailbox }}</dd></div>
+                            <div><dt>Requester</dt><dd id="requester-value">{{ default_workflow.incident.requester }}</dd></div>
+                            <div><dt>Mailbox owner</dt><dd id="owner-value">{{ default_workflow.incident.owner }}</dd></div>
+                            <div><dt>Requested rights</dt><dd id="permission-value">{{ default_workflow.incident.permission }}</dd></div>
+                            <div><dt>Assignment group</dt><dd id="assignment-value">{{ default_workflow.incident.assignment_group }}</dd></div>
+                            <div><dt>Resolution target</dt><dd id="sla-value">{{ default_workflow.incident.target_sla }}</dd></div>
+                        </dl>
+
+                        <div class="context-subsection">
+                            <div class="subsection-heading">
+                                <span>RUN ENVELOPE</span>
+                                <i data-lucide="fingerprint" aria-hidden="true"></i>
+                            </div>
+                            <dl class="run-envelope">
+                                <div><dt>Run ID</dt><dd><code id="run-id">{{ default_workflow.run.id }}</code></dd></div>
+                                <div><dt>Correlation</dt><dd><code id="correlation-id">{{ default_workflow.run.correlation_id }}</code></dd></div>
+                                <div><dt>Policy</dt><dd><code id="policy-id">{{ default_workflow.run.policy }}</code></dd></div>
+                                <div><dt>Risk</dt><dd id="risk-value">{{ default_workflow.run.risk }}</dd></div>
+                            </dl>
+                        </div>
+
+                        <div class="context-subsection connector-health">
+                            <div class="subsection-heading"><span>CONNECTOR HEALTH</span><span class="all-healthy">ALL HEALTHY</span></div>
+                            <div class="connector-row"><span><i data-lucide="cloud" aria-hidden="true"></i> ServiceNow MCP</span><b>42 ms</b></div>
+                            <div class="connector-row"><span><i data-lucide="blocks" aria-hidden="true"></i> Microsoft Graph</span><b>68 ms</b></div>
+                            <div class="connector-row"><span><i data-lucide="terminal-square" aria-hidden="true"></i> Exchange PS</span><b>91 ms</b></div>
+                        </div>
+                    </aside>
+
+                    <section class="panel execution-panel" aria-labelledby="execution-heading">
+                        <div class="panel-heading execution-heading">
+                            <div>
+                                <span class="panel-kicker">LIVE EXECUTION</span>
+                                <h2 id="execution-heading">Agent activity</h2>
+                            </div>
+                            <div class="execution-metrics">
+                                <span><small>CHECKPOINT</small><b id="checkpoint-value">Not started</b></span>
+                                <span><small>ELAPSED</small><b id="elapsed-value">00:00</b></span>
+                                <span><small>EVIDENCE</small><b id="evidence-count">0</b></span>
+                            </div>
+                        </div>
+                        <div class="execution-list" id="execution-list" aria-live="polite"></div>
+                    </section>
+
+                    <aside class="panel inspector-panel" aria-labelledby="inspector-heading">
+                        <div class="inspector-top">
+                            <div>
+                                <span class="panel-kicker">EXECUTION INSPECTOR</span>
+                                <h2 id="inspector-heading">No operation selected</h2>
+                            </div>
+                            <button class="icon-button compact" id="copy-button" type="button" aria-label="Copy inspector content" title="Copy inspector content">
+                                <i data-lucide="copy" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="inspector-meta">
+                            <span id="inspector-agent">Awaiting run</span>
+                            <span id="inspector-duration">--</span>
+                        </div>
+                        <div class="tab-list" role="tablist" aria-label="Inspector views">
+                            <button type="button" role="tab" class="tab-button is-active" data-tab="io" aria-selected="true">Tool I/O</button>
+                            <button type="button" role="tab" class="tab-button" data-tab="evidence" aria-selected="false">Evidence</button>
+                            <button type="button" role="tab" class="tab-button" data-tab="policy" aria-selected="false">Policy</button>
+                        </div>
+                        <div class="inspector-body">
+                            <div class="tab-panel is-active" data-panel="io">
+                                <div class="code-label"><span>COMMAND</span><span id="connector-label">--</span></div>
+                                <pre id="command-output"><code>Run the simulation to inspect each agent operation.</code></pre>
+                                <div class="code-label"><span>REQUEST</span><span>JSON</span></div>
+                                <pre id="request-output"><code>{}</code></pre>
+                                <div class="code-label"><span>RESPONSE</span><span>JSON</span></div>
+                                <pre id="response-output"><code>{}</code></pre>
+                            </div>
+                            <div class="tab-panel" data-panel="evidence">
+                                <ul class="evidence-list" id="evidence-list">
+                                    <li>No evidence captured yet.</li>
+                                </ul>
+                            </div>
+                            <div class="tab-panel" data-panel="policy">
+                                <dl class="policy-list" id="policy-list">
+                                    <div><dt>Identity</dt><dd>--</dd></div>
+                                    <div><dt>Authorization</dt><dd>--</dd></div>
+                                    <div><dt>Data class</dt><dd>--</dd></div>
+                                </dl>
+                                <div class="guardrail-result">
+                                    <i data-lucide="shield-check" aria-hidden="true"></i>
+                                    <div><b>Pre-execution guardrail</b><span id="guardrail-text">Waiting for an operation</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <dialog class="gate-dialog" id="gate-dialog">
+        <div class="gate-accent"></div>
+        <div class="gate-header">
+            <div class="gate-icon"><i data-lucide="user-round-check" aria-hidden="true"></i></div>
+            <div>
+                <span class="panel-kicker" id="gate-eyebrow">HUMAN CONTROL POINT</span>
+                <h2 id="gate-title">Approval required</h2>
+            </div>
+            <span class="paused-chip"><span></span> Workflow paused</span>
+        </div>
+        <p id="gate-message"></p>
+        <dl class="gate-details">
+            <div><dt>Requested from</dt><dd id="gate-recipient"></dd></div>
+            <div><dt>Channel</dt><dd id="gate-channel"></dd></div>
+            <div><dt>Checkpoint</dt><dd id="gate-checkpoint"></dd></div>
+        </dl>
+        <div class="gate-actions">
+            <button type="button" class="secondary-button" id="gate-secondary"></button>
+            <button type="button" class="primary-button" id="gate-primary">
+                <i data-lucide="check" aria-hidden="true"></i>
+                <span></span>
+            </button>
+        </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    {{ workflows|json_script:"workflow-data" }}
+</body>
+</html>
